@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python caches and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Tooling and build output
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Keep this repository configuration tracked
+!.gitignore
