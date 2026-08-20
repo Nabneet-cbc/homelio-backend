@@ -160,3 +160,129 @@ async def transcribe_and_extract(audio: UploadFile = File(...)):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+class ReferralExtraction(BaseModel):
+    priority: Optional[str] = Field(default=None, description="Priority (Routine, Urgent)")
+    referralStatus: Optional[str] = Field(default=None, description="Referral Status (New, In Review, Pending Documents, Accepted, Declined)")
+    
+    facilityName: Optional[str] = Field(default=None, description="Hospital / Facility Name")
+    physicianName: Optional[str] = Field(default=None, description="Referring Physician")
+    plannerName: Optional[str] = Field(default=None, description="Discharge Planner Name")
+    contactDetails: Optional[str] = Field(default=None, description="Provider Contact Details (Phone / Email)")
+    npi: Optional[str] = Field(default=None, description="NPI Number (10 digits)")
+    sourceType: Optional[str] = Field(default=None, description="Referral Source Type")
+    dischargeDate: Optional[str] = Field(default=None, description="Discharge Date (YYYY-MM-DD format if possible)")
+    reasonForReferral: Optional[str] = Field(default=None, description="Reason for Referral")
+
+    clientName: Optional[str] = Field(default=None, description="Patient Name")
+    preferredName: Optional[str] = Field(default=None, description="Preferred Name")
+    dob: Optional[str] = Field(default=None, description="Date of Birth (YYYY-MM-DD)")
+    ssn: Optional[str] = Field(default=None, description="SSN / MBI")
+    gender: Optional[str] = Field(default=None, description="Gender (Male, Female, Other)")
+    race: Optional[str] = Field(default=None, description="Race / Ethnicity")
+    preferredLanguage: Optional[str] = Field(default=None, description="Preferred Language")
+    interpreterNeeded: Optional[bool] = Field(default=None, description="True if Interpreter Needed")
+    maritalStatus: Optional[str] = Field(default=None, description="Marital Status")
+    phone: Optional[str] = Field(default=None, description="Patient Phone Number")
+    livingSituation: Optional[str] = Field(default=None, description="Living Situation")
+    primaryCaregiver: Optional[str] = Field(default=None, description="Primary Caregiver at Home")
+    email: Optional[str] = Field(default=None, description="Patient Email Address")
+    address: Optional[str] = Field(default=None, description="Street Address")
+    city: Optional[str] = Field(default=None, description="City")
+    state: Optional[str] = Field(default=None, description="State (e.g., IL)")
+    zip: Optional[str] = Field(default=None, description="ZIP Code")
+
+    primaryDiagnosis: Optional[str] = Field(default=None, description="Primary Diagnosis (ICD-10 Code)")
+    secondaryDiagnoses: Optional[str] = Field(default=None, description="Secondary Diagnoses")
+    allergies: Optional[str] = Field(default=None, description="Allergies (with reaction type)")
+    advanceDirective: Optional[str] = Field(default=None, description="Advance Directive Status")
+    currentMedications: Optional[str] = Field(default=None, description="Current Medications (drug, dose, freq)")
+    recentHospitalizations: Optional[str] = Field(default=None, description="Recent Hospitalizations (dates, reason)")
+    pastMedicalHistory: Optional[str] = Field(default=None, description="Past Medical/Surgical History")
+
+    mobilityStatus: Optional[str] = Field(default=None, description="Mobility Status / Ambulation Aids")
+    fallRisk: Optional[str] = Field(default=None, description="Fall Risk Score / History")
+    adlNeeds: Optional[str] = Field(default=None, description="ADL / IADL Needs")
+    cognitiveStatus: Optional[str] = Field(default=None, description="Cognitive Status Screening")
+
+    typeOfCare: Optional[List[str]] = Field(default=None, description="Type of Care Needed (Skilled Nursing, PT / OT / ST, Home Health Aide, Personal Care, Companion Care, Medical Social Worker)")
+    startOfCareDate: Optional[str] = Field(default=None, description="Requested Start-of-Care Date")
+    requestedFrequency: Optional[str] = Field(default=None, description="Requested Frequency")
+    specialSkillRequirements: Optional[str] = Field(default=None, description="Special Skill Requirements")
+    caregiverPreferences: Optional[str] = Field(default=None, description="Caregiver Preferences (Language/Gender)")
+    accessInstructions: Optional[str] = Field(default=None, description="Access Instructions & Pet Notes")
+
+    primaryContactName: Optional[str] = Field(default=None, description="Primary/Emergency Contact Name")
+    primaryContactRelationship: Optional[str] = Field(default=None, description="Relationship to Patient")
+    primaryContactPhone: Optional[str] = Field(default=None, description="Contact Phone Number")
+    primaryContactEmail: Optional[str] = Field(default=None, description="Contact Email Address")
+    isResponsibleParty: Optional[bool] = Field(default=None, description="True if Responsible Party / Legal Guardian / POA")
+    portalConsent: Optional[bool] = Field(default=None, description="True if Consent for Family Portal Access")
+
+    primaryInsurance: Optional[str] = Field(default=None, description="Primary Insurance")
+    primaryMemberId: Optional[str] = Field(default=None, description="Primary Member ID")
+    primaryGroupNumber: Optional[str] = Field(default=None, description="Primary Group Number")
+    insurancePhone: Optional[str] = Field(default=None, description="Insurance Phone")
+    secondaryInsurance: Optional[str] = Field(default=None, description="Secondary Insurance")
+    secondaryMemberId: Optional[str] = Field(default=None, description="Secondary Member ID")
+    secondaryGroupNumber: Optional[str] = Field(default=None, description="Secondary Group Number")
+    policyholderName: Optional[str] = Field(default=None, description="Policyholder Name/Rel")
+    preAuthStatus: Optional[str] = Field(default=None, description="Pre-Authorization Status")
+    authNumber: Optional[str] = Field(default=None, description="Authorization Number")
+
+
+
+def perform_referral_extraction(text: str):
+    schema = ReferralExtraction.schema_json()
+    system_prompt = f"""You are an expert AI assistant for a home healthcare platform.
+Your task is to extract patient referral data from the provided speech transcription and return ONLY a flat JSON object matching the exact keys provided in the schema below.
+
+CRITICAL INSTRUCTIONS:
+1. ONLY extract information that is explicitly stated or strongly implied in the text.
+2. DO NOT GUESS OR HALLUCINATE ANY DATA. If a field is not mentioned, you MUST leave it empty (null).
+3. If you are not confident about a piece of information, LEAVE IT EMPTY.
+4. Format dates as YYYY-MM-DD if possible, otherwise leave them as extracted.
+5. Do NOT nest the JSON inside a "patient" or "data" object. Return the flat keys directly.
+
+Schema to match:
+{schema}
+"""
+    completion = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Transcription to extract from:\n{text}"}
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.1,
+    )
+    return json.loads(completion.choices[0].message.content)
+
+@app.post("/extract-referral")
+async def extract_referral(request: TranscriptionRequest):
+    try:
+        data = perform_referral_extraction(request.text)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/transcribe-and-extract-referral")
+async def transcribe_and_extract_referral(audio: UploadFile = File(...)):
+    try:
+        file_bytes = await audio.read()
+        transcription = client.audio.transcriptions.create(
+            file=(audio.filename, file_bytes),
+            model="whisper-large-v3",
+            response_format="json"
+        )
+        text = transcription.text
+        
+        extracted_data = perform_referral_extraction(text)
+        return {
+            "transcript": text,
+            "extractedData": extracted_data
+        }
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=str(e))
