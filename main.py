@@ -52,16 +52,16 @@ class PatientInquiryExtraction(BaseModel):
     startOfCareDate: Optional[str] = Field(default=None, description="Requested start-of-care date")
     caregiverPreferences: Optional[str] = Field(default=None, description="Caregiver preferences (e.g., Female, Spanish speaking)")
     accessInstructionsAndPets: Optional[str] = Field(default=None, description="Home access instructions and pet information")
-    notes: Optional[str] = Field(default=None, description="Additional notes or comments about the inquiry")
+    notes: Optional[str] = Field(default=None, description="Any specifications required from the agency and service or about caregiver that doesn't have a separate field but is important for the inquiry")
     priority: Optional[str] = Field(default=None, description="Priority of the inquiry")
 
     primaryInsurance: Optional[str] = Field(default=None, description="Name of the primary insurance provider")
     memberId: Optional[str] = Field(default=None, description="Member ID for the primary insurance")
 
     # Extra fields missed initially
-    sourceType: Optional[str] = Field(default=None, description="Source Type")
-    communicationChannel: Optional[str] = Field(default=None, description="Communication Channel")
-    howHeard: Optional[str] = Field(default=None, description="How did you hear about us?")
+    sourceType: Optional[str] = Field(default=None, description="Source Type like phone, email, website, social media, etc.")
+    communicationChannel: Optional[str] = Field(default=None, description="Communication Channel like form, phone call, email, text, in-person, etc.")
+    howHeard: Optional[str] = Field(default=None, description="How did you hear about us? like Google, Facebook, Referral, etc.")
     campaignSource: Optional[str] = Field(default=None, description="Campaign / Source")
     additionalSourceDetails: Optional[str] = Field(default=None, description="Additional Source Details")
     
@@ -74,14 +74,14 @@ class PatientInquiryExtraction(BaseModel):
     secondaryInsurance: Optional[str] = Field(default=None, description="Secondary Insurance provider")
     secondaryMemberId: Optional[str] = Field(default=None, description="Secondary Insurance Member ID")
     
-    internalNotes: Optional[str] = Field(default=None, description="Internal Intake Notes")
+    internalNotes: Optional[str] = Field(default=None, description="Internal Notes regarding the inquiry, Patient important information like the reason for the inquiry, any allergies mentioned, etc.")
     followUpRequired: Optional[Literal["Yes", "No"]] = Field(default=None, description="Is follow-up required? (Yes / No)")
     followUpDate: Optional[str] = Field(default=None, description="Follow-up Date (YYYY-MM-DD)")
     assignedTo: Optional[str] = Field(default=None, description="Assigned To coordinator name")
     
     currentOutcome: Optional[str] = Field(default=None, description="Current Outcome")
     nextAction: Optional[str] = Field(default=None, description="Next Action")
-    outcomeComments: Optional[str] = Field(default=None, description="Outcome Comments")
+    outcomeComments: Optional[str] = Field(default=None, description="next action items are come here like call back, send email, schedule visit, etc. and any comments related to the outcome")
 
     # The absolute final missing fields
     intakeCoordinator: Optional[str] = Field(default=None, description="Intake Coordinator")
@@ -93,16 +93,14 @@ class PatientInquiryExtraction(BaseModel):
 
 def perform_extraction(text: str):
     schema = PatientInquiryExtraction.schema_json()
-    system_prompt = f"""You are an expert AI assistant for a home healthcare platform.
-Your task is to extract patient and inquiry data from the provided speech transcription and return ONLY a flat JSON object matching the exact keys provided in the schema below.
-
+    system_prompt = f"""You are an elite, highly intelligent clinical intake coordinator for a home healthcare platform.
+The user will dictate a rough, conversational, and unstructured story about a new patient inquiry. 
+Your task is to use your intelligence to deduce the context and map the facts into the exact JSON schema provided below.
 CRITICAL INSTRUCTIONS:
-1. ONLY extract information that is explicitly stated or strongly implied in the text.
-2. DO NOT GUESS OR HALLUCINATE ANY DATA. If a field is not mentioned, you MUST leave it empty (null).
-3. If you are not confident about a piece of information, LEAVE IT EMPTY.
-4. Format dates as YYYY-MM-DD if possible, otherwise leave them as extracted.
-5. Do NOT nest the JSON inside a "patient" or "data" object. Return the flat keys directly.
-
+1. INFER AND DEDUCE: Intelligently map their rambling to the correct fields.
+2. SUMMARIZE NOTES: Use your clinical intelligence to summarize any background context, story, or patient concerns into the 'internalNotes' field.
+3. NEXT ACTIONS: Deduce what needs to happen next based on the story and put it in 'outcomeComments'.
+4. Do NOT nest the JSON inside a "patient" or "data" object. Return the flat keys directly.
 Schema to match:
 {schema}
 """
